@@ -1,0 +1,208 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Campus Opportunity Radar</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f1f5f9;
+        margin: 30px;
+      }
+
+      h1 {
+        color: #173b65;
+      }
+
+      .box, .card {
+        background: white;
+        padding: 16px;
+        margin-top: 16px;
+        border-radius: 10px;
+      }
+
+      input, select, button {
+        padding: 8px;
+        margin: 5px;
+      }
+
+      button {
+        cursor: pointer;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Campus Opportunity Radar</h1>
+    <p>Find events and opportunities for students.</p>
+
+    <h2>Add an opportunity</h2>
+    <div class="box">
+      <p><input id="titleInput" placeholder="Opportunity name"></p>
+
+      <p>
+        <select id="typeInput">
+          <option value="contest">Coding contest</option>
+          <option value="workshop">Workshop</option>
+          <option value="hackathon">Hackathon</option>
+        </select>
+      </p>
+
+      <p><input id="dateInput" type="date"></p>
+      <p><input id="eligibilityInput" placeholder="Who can join?"></p>
+      <p><input id="linkInput" placeholder="Website link"></p>
+      <button id="addButton">Add opportunity</button>
+    </div>
+
+    <h2>Upcoming opportunities</h2>
+    <label for="typeFilter">Show:</label>
+    <select id="typeFilter">
+      <option value="all">All opportunities</option>
+      <option value="contest">Coding contests</option>
+      <option value="workshop">Workshops</option>
+      <option value="hackathon">Hackathons</option>
+      <option value="saved">Saved opportunities</option>
+      <option value="applied">Applied opportunities</option>
+    </select>
+
+    <div id="opportunityList"></div>
+
+    <script>
+      const opportunityList = document.getElementById("opportunityList");
+      const typeFilter = document.getElementById("typeFilter");
+
+      function readList(key) {
+        return JSON.parse(localStorage.getItem(key) || "[]");
+      }
+
+      function makeCard(opportunity) {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.dataset.type = opportunity.type;
+        card.dataset.name = opportunity.title;
+
+        const heading = document.createElement("h3");
+        heading.textContent = opportunity.title;
+
+        const typeText = document.createElement("p");
+        typeText.textContent = "Type: " + opportunity.type;
+
+        const dateText = document.createElement("p");
+        dateText.textContent = "Date: " + opportunity.date;
+
+        const eligibilityText = document.createElement("p");
+        eligibilityText.textContent = "Open to: " + opportunity.eligibility;
+
+        const link = document.createElement("a");
+        link.href = opportunity.link;
+        link.textContent = "View details";
+        link.target = "_blank";
+        link.rel = "noopener";
+
+        const saveButton = document.createElement("button");
+        saveButton.textContent = readList("savedOpportunities")
+          .includes(opportunity.title) ? "Saved!" : "Save opportunity";
+
+        saveButton.addEventListener("click", function () {
+          const saved = readList("savedOpportunities");
+          if (!saved.includes(opportunity.title)) {
+            saved.push(opportunity.title);
+            localStorage.setItem("savedOpportunities", JSON.stringify(saved));
+          }
+          saveButton.textContent = "Saved!";
+          showCards();
+        });
+
+        const appliedButton = document.createElement("button");
+        appliedButton.textContent = readList("appliedOpportunities")
+          .includes(opportunity.title) ? "Applied!" : "Mark as applied";
+
+        appliedButton.addEventListener("click", function () {
+          const applied = readList("appliedOpportunities");
+          if (!applied.includes(opportunity.title)) {
+            applied.push(opportunity.title);
+            localStorage.setItem("appliedOpportunities", JSON.stringify(applied));
+          }
+          appliedButton.textContent = "Applied!";
+          showCards();
+        });
+
+        const buttons = document.createElement("p");
+        buttons.append(saveButton, appliedButton);
+
+        card.append(heading, typeText, dateText, eligibilityText, link, buttons);
+        opportunityList.appendChild(card);
+      }
+
+      function getAllOpportunities() {
+        const examples = [
+          {
+            title: "Campus Coding Contest",
+            type: "contest",
+            date: "15 November 2026",
+            eligibility: "All students",
+            link: "https://example.com"
+          },
+          {
+            title: "Web Design Workshop",
+            type: "workshop",
+            date: "20 November 2026",
+            eligibility: "Beginners welcome",
+            link: "https://example.com"
+          }
+        ];
+
+        return examples.concat(readList("myOpportunities"));
+      }
+
+      function showCards() {
+        opportunityList.innerHTML = "";
+        const choice = typeFilter.value;
+        const saved = readList("savedOpportunities");
+        const applied = readList("appliedOpportunities");
+
+        getAllOpportunities().forEach(function (opportunity) {
+          const isSaved = saved.includes(opportunity.title);
+          const isApplied = applied.includes(opportunity.title);
+          const typeMatches =
+            choice === "all" ||
+            choice === "saved" ||
+            choice === "applied" ||
+            opportunity.type === choice;
+          const savedMatches = choice !== "saved" || isSaved;
+          const appliedMatches = choice !== "applied" || isApplied;
+
+          if (typeMatches && savedMatches && appliedMatches) {
+            makeCard(opportunity);
+          }
+        });
+      }
+
+      document.getElementById("addButton").addEventListener("click", function () {
+        const title = document.getElementById("titleInput").value.trim();
+        const type = document.getElementById("typeInput").value;
+        const date = document.getElementById("dateInput").value;
+        const eligibility = document.getElementById("eligibilityInput").value.trim();
+        const link = document.getElementById("linkInput").value.trim();
+
+        if (!title || !date || !eligibility || !link) {
+          alert("Please fill in every box.");
+          return;
+        }
+
+        const myOpportunities = readList("myOpportunities");
+        myOpportunities.push({ title, type, date, eligibility, link });
+        localStorage.setItem("myOpportunities", JSON.stringify(myOpportunities));
+
+        document.getElementById("titleInput").value = "";
+        document.getElementById("dateInput").value = "";
+        document.getElementById("eligibilityInput").value = "";
+        document.getElementById("linkInput").value = "";
+
+        showCards();
+      });
+
+      typeFilter.addEventListener("change", showCards);
+      showCards();
+    </script>
+  </body>
+</html>
